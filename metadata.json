@@ -1,0 +1,7 @@
+{
+  "name": "Hands-Free Dialer",
+  "description": "An automated hands-free dialer that reads contact information from a CSV spreadsheet and initiates phone calls on iPhone.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
