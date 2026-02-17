@@ -10,7 +10,6 @@ const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [showConfig, setShowConfig] = useState(false);
   
-  // Standaard URL (kan worden aangepast in de app)
   const [csvUrl, setCsvUrl] = useState(() => {
     return localStorage.getItem('csv_url') || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbq70IuS3Y_fD4jX0jB_vXp6i_V5_R7E7_qGv_vXp6i/pub?output=csv';
   });
@@ -20,7 +19,6 @@ const App: React.FC = () => {
   const parseCSV = (csv: string): ContactRow[] => {
     const lines = csv.split('\n');
     return lines.slice(1).map(line => {
-      // Split op komma's, maar hou rekening met quotes
       const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
       return {
         relatie: columns[0] || '',
@@ -64,7 +62,6 @@ const App: React.FC = () => {
     try {
       setStatus(AppStatus.READING);
 
-      // Tekst om voor te lezen
       const speakText = `Relatie: ${current.relatie}. Contactpersoon: ${current.contactpersoon}. Onderwerp: ${current.onderwerp}.`;
 
       const audioData = await generateSpeech(speakText);
@@ -75,7 +72,6 @@ const App: React.FC = () => {
       }
       const ctx = audioContextRef.current;
       
-      // Hervat audio context (nodig voor iOS na interactie)
       if (ctx.state === 'suspended') {
         await ctx.resume();
       }
@@ -101,11 +97,8 @@ const App: React.FC = () => {
   const initiateCall = (phone: string) => {
     setStatus(AppStatus.DIALING);
     const cleanPhone = phone.replace(/[^\d+]/g, '');
-    
-    // iPhone telefoon app openen
     window.location.href = `tel:${cleanPhone}`;
     
-    // Ga na een vertraging naar de volgende
     setTimeout(() => {
       setCurrentIndex((prev) => (prev + 1) % contacts.length);
       setStatus(AppStatus.IDLE);
@@ -170,8 +163,6 @@ const App: React.FC = () => {
         </div>
       ) : (
         <div className="w-full max-w-sm flex flex-col items-center justify-between h-[80vh]">
-          
-          {/* Bovenkant: Contact naam */}
           <div className="text-center pt-12">
             <p className="text-blue-600 font-black text-xs tracking-widest mb-2">VOLGENDE CONTACT</p>
             <h1 className="text-5xl md:text-6xl font-black text-slate-900 leading-tight break-words">
@@ -179,7 +170,6 @@ const App: React.FC = () => {
             </h1>
           </div>
 
-          {/* Midden: Grote blauwe knop */}
           <button
             onClick={handleStart}
             disabled={status !== AppStatus.IDLE}
@@ -198,13 +188,11 @@ const App: React.FC = () => {
               </div>
             )}
             
-            {/* Subtiele gloed animatie wanneer IDLE */}
             {status === AppStatus.IDLE && (
               <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-20 pointer-events-none"></div>
             )}
           </button>
 
-          {/* Onderkant: Navigatie en instellingen */}
           <div className="w-full flex flex-col items-center gap-8 pb-12">
             <div className="flex gap-12 items-center text-slate-300">
               <button onClick={() => setCurrentIndex(i => (i - 1 + contacts.length) % contacts.length)} className="p-4 active:text-blue-600 transition-colors">
