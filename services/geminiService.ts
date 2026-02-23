@@ -13,7 +13,7 @@ export const generateSpeech = async (text: string): Promise<Uint8Array | null> =
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Spreek dit op een rustige en duidelijke manier uit in het Nederlands: ${text}` }] }],
+      contents: [{ parts: [{ text: `Spreek dit vlot en op een vlot tempo uit in het Nederlands: ${text}` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: {

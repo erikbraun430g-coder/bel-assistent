@@ -43,6 +43,7 @@ const App: React.FC = () => {
       const buffer = await decodeAudioToBuffer(audioData, ctx);
       const source = ctx.createBufferSource();
       source.buffer = buffer;
+      source.playbackRate.value = 1.15;
       source.connect(ctx.destination);
       source.onended = () => setStatus(AppStatus.IDLE);
       source.start(0);
@@ -146,14 +147,31 @@ const App: React.FC = () => {
             // BELANGRIJK: We negeren de audio-output van de Live API volledig!
             // Alleen de toolCalls (commando's) verwerken we.
             
-            if (message.toolCall) {
+            if (message.toolCall?.functionCalls) {
               for (const fc of message.toolCall.functionCalls) {
                 let result = "ok";
                 if (fc.name === 'volgende_contact') nextContact();
                 if (fc.name === 'vorige_contact') prevContact();
+                if (fc.name === 'ga_naar_contact') {
+                  const idx = (fc.args as any).index - 1;
+                  if (idx >= 0 && idx < contacts.length) {
+                    setCurrentIndex(idx);
+                  }
+                }
                 if (fc.name === 'bel_huidige_persoon') {
                   const current = contacts[currentIndex];
-                  initiateCall(current.telefoonnummer);
+                  if (current) initiateCall(current.telefoonnummer);
+                }
+                if (fc.name === 'bel_specifiek_contact') {
+                  const searchName = (fc.args as any).naam.toLowerCase();
+                  const foundIndex = contacts.findIndex(c => 
+                    c.contactpersoon.toLowerCase().includes(searchName) || 
+                    (c.relatie && c.relatie.toLowerCase().includes(searchName))
+                  );
+                  if (foundIndex !== -1) {
+                    setCurrentIndex(foundIndex);
+                    setTimeout(() => initiateCall(contacts[foundIndex].telefoonnummer), 1500);
+                  }
                 }
                 sessionPromise.then(s => s.sendToolResponse({
                   functionResponses: { id: fc.id, name: fc.name, response: { result } }
@@ -165,13 +183,35 @@ const App: React.FC = () => {
         config: {
           responseModalities: [Modality.AUDIO], // Vereist door API, maar we spelen het niet af
           systemInstruction: `Je bent een passieve luisteraar voor een handsfree bel-app.
-          Luister naar commando's: 'volgende' (volgende_contact), 'vorige' (vorige_contact), 'bel' (bel_huidige_persoon).
+          Luister naar commando's:
+          - 'volgende' -> volgende_contact
+          - 'vorige' -> vorige_contact
+          - 'bel' (huidige persoon) -> bel_huidige_persoon
+          - 'bel [naam]' -> bel_specifiek_contact({naam: '...'})
+          - 'ga naar [nummer]' of 'lees de [nummer]e voor' -> ga_naar_contact({index: nummer})
+          
           Reageer NOOIT met spraak. Gebruik alleen de tools.`,
           tools: [{
             functionDeclarations: [
               { name: 'volgende_contact', parameters: { type: Type.OBJECT, properties: {} } },
               { name: 'vorige_contact', parameters: { type: Type.OBJECT, properties: {} } },
-              { name: 'bel_huidige_persoon', parameters: { type: Type.OBJECT, properties: {} } }
+              { name: 'bel_huidige_persoon', parameters: { type: Type.OBJECT, properties: {} } },
+              { 
+                name: 'ga_naar_contact', 
+                parameters: { 
+                  type: Type.OBJECT, 
+                  properties: { index: { type: Type.NUMBER, description: 'Het 1-gebaseerde index nummer van het contact' } },
+                  required: ['index']
+                } 
+              },
+              { 
+                name: 'bel_specifiek_contact', 
+                parameters: { 
+                  type: Type.OBJECT, 
+                  properties: { naam: { type: Type.STRING, description: 'De naam van de persoon om te bellen' } },
+                  required: ['naam']
+                } 
+              }
             ]
           }]
         }
